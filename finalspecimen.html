@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cell</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        #vibe-canvas {
+            transform-origin: top left;
+            opacity: 0;
+        }
+
+        @font-face {
+            font-family: 'Cell-2901';
+            src: url('./Cell-2901.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        :root {
+            --primary-green: #2D7732;
+            --bg-light: #F3FCF4;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--primary-green);
+            overflow-x: hidden;
+            font-family: 'Cell-2901', sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #main-wrapper {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            touch-action: none;
+        }
+
+        #fixed-header {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            color: var(--primary-green);
+            z-index: 9999;
+
+            /* 添加这两行 */
+            opacity: 0;
+            pointer-events: none;
+
+            cursor: pointer;
+            letter-spacing: 0.05em;
+        }
+
+        /* 修改这一段 */
+        #main-wrapper::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url("./image/noise.jpg");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: cover;
+            /* 关键修改：初始透明度设为 0，并关联一个 CSS 变量 */
+            opacity: var(--noise-opacity, 0);
+            pointer-events: auto;
+            cursor: pointer;
+            /* 可选：让它看起来可点 */
+
+            z-index: 0;
+        }
+
+        /* 让你的内容在背景图上面 */
+        #vibe-canvas {
+            position: relative;
+            z-index: 1;
+        }
+
+        #center-x {
+            z-index: 3;
+            /* 让大 X 在噪点上面（想在下面就改成 1） */
+        }
+
+        #editableText::placeholder {
+            color: rgba(45, 119, 50, 1);
+            /* 主绿色 + 更淡 */
+        }
+
+        .custom-border {
+            border: 1px solid rgba(45, 119, 50, 1);
+        }
+
+        .canvas {
+            width: 200vw;
+            height: 200vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            position: relative;
+        }
+
+        section {
+            width: 100vw;
+            height: 100vh;
+            padding: 4rem;
+            position: relative;
+        }
+
+        #center-x {
+            font-size: 300vh;
+            color: var(--primary-green);
+            z-index: 1;
+            line-height: 1;
+            user-select: none;
+            font-family: 'Cell-2901', sans-serif;
+            pointer-events: none;
+        }
+
+        input,
+        textarea {
+            font-family: 'Cell-2901', sans-serif;
+            color: var(--primary-green);
+        }
+
+        #char-grid span {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 1.5rem;
+
+            /* 核心修改：移除透明度，使用和展示圆一样的实色边框 */
+            border: 1px solid var(--primary-green);
+            border-radius: 9999px;
+            margin: 4px;
+            /* 背景改得更淡，甚至可以设为 transparent */
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 悬停效果：实色填充 */
+        #char-grid span:hover {
+            background: var(--primary-green);
+            color: var(--bg-light);
+            transform: scale(1.1);
+            /* 悬停时轻微放大 */
+            border-color: var(--primary-green);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 2px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--primary-green);
+        }
+
+        /* 让 Section 1 的文本两端对齐，更有学术排版的感觉 */
+        #section-1 .text-justify {
+            text-align: left;
+            text-justify: inter-word;
+        }
+
+        /* 给方框加一个极细的内阴影，增加层次感 */
+
+        /* 滚动条样式 */
+        #scroll-tracker {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .scroll-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(45, 119, 50, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .scroll-dot.active {
+            background: var(--primary-green);
+            transform: scale(1.3);
+        }
+
+        /* 统一 Alignment 按钮的基础样式，使其接近 char-grid span */
+        .align-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid var(--primary-green) !important;
+            border-radius: 9999px;
+            cursor: pointer;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            /* ✅ 关键修复 */
+            isolation: isolate;
+            will-change: transform;
+        }
+
+
+        /* Hover 样式：模仿 char-grid span:hover */
+        .align-btn:hover {
+            background: var(--primary-green) !important;
+            transform: scale(1.1);
+            /* 与 char-grid 缩放一致 */
+        }
+
+        /* Hover 时强制内部 SVG 变色 */
+        .align-btn:hover svg {
+            fill: var(--bg-light) !important;
+        }
+
+        /* 激活状态：保持实色填充 */
+        .align-btn.active {
+            background: var(--primary-green) !important;
+            transform: scale(1);
+        }
+
+        /* 激活状态下的图标颜色 */
+        .align-btn.active svg {
+            fill: var(--bg-light) !important;
+        }
+
+        /* 修正默认状态下的图标颜色 */
+        .align-btn svg {
+            fill: var(--primary-green);
+            transition: fill 0.3s ease;
+        }
+
+        /* ===== INTRO: overview 2x2 (4 pagine in miniatura) ===== */
+        #vibe-canvas {
+            transform-origin: top left;
+            /* importantissimo per lo zoom pulito */
+        }
+
+        /* nasconde scrollbar ma mantiene lo scroll */
+        .custom-scrollbar {
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE / Edge */
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            display: none;
+            /* Chrome / Safari */
+        }
+
+        #intro-x {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30px;
+            line-height: 1;
+            color: var(--primary-green);
+            z-index: 99998;
+            /* sotto header, sopra tutto */
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="fixed-header">Organismo Tipografico</div>
+    <div id="scroll-tracker">
+        <div class="scroll-dot active" data-section="1"></div>
+        <div class="scroll-dot" data-section="2"></div>
+        <div class="scroll-dot" data-section="3"></div>
+        <div class="scroll-dot" data-section="4"></div>
+    </div>
+
+    <div id="main-wrapper">
+        <div class="canvas" id="vibe-canvas">
+
+            <div id="center-x" class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                x
+            </div>
+
+            <section id="section-1" class="h-screen w-screen overflow-hidden relative">
+                <img src="image/grid1.png" alt="grid background" class="absolute w-[90%] h-[90%] object-contain transition-all duration-500
+           left-[45%] 
+           top-[50%] 
+           -translate-x-1/2 ss
+           -translate-y-1/2" />
+            </section>
+
+            <section id="section-2" class="h-screen w-screen px-20 pt-8 pb-4 overflow-hidden relative">
+
+                <div class="absolute bottom-[70px] top-[200px] left-[50%] w-[40%]  z-[10]">
+
+                    <textarea id="editableText" spellcheck="false" class="w-full h-full
+         bg-transparent border-none outline-none resize-none
+         text-[56px] leading-[1.3]
+         custom-scrollbar
+         px-8 py-6" placeholder="(type the text here)">
+Text here to try Cell Font. Text here to try Cell Font. Text here to try Cell Font. Text here to try Cell Font. Text here to try Cell Font. Text here to try Cell Font. Text here to try Cell Font. Text here to try Cell Font. Text here to try Cell Font. Text here to try Cell Font. </textarea>
+                </div>
+
+                <div
+                    class="absolute bottom-[70px] left-[calc(50%-320px-45px)] w-[320px] flex flex-col gap-6  origin-bottom-right">
+
+                    <div class="flex flex-col gap-3">
+                        <span class="text-[20px]">alignment</span>
+
+                        <div class="flex items-center justify-start w-full gap-4">
+                            <div onclick="setTextAlign('left', this)" class="align-btn active w-12 h-12">
+                                <svg class="w-6 h-6" viewBox="0 0 24 24">
+                                    <path d="M4 5h12v2H4z M4 9h16v2H4z M4 13h12v2H4z M4 17h16v2H4z" />
+                                </svg>
+                            </div>
+
+                            <div onclick="setTextAlign('center', this)" class="align-btn w-12 h-12">
+                                <svg class="w-6 h-6" viewBox="0 0 24 24">
+                                    <path d="M6 5h12v2H6z M4 9h16v2H4z M6 13h12v2H6z M4 17h16v2H4z" />
+                                </svg>
+                            </div>
+
+                            <div onclick="setTextAlign('right', this)" class="align-btn w-12 h-12">
+                                <svg class="w-6 h-6" viewBox="0 0 24 24">
+                                    <path d="M8 5h12v2H8z M4 9h16v2H4z M8 13h12v2H8z M4 17h16v2H4z" />
+                                </svg>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="custom-border p-6 bg-white/5 flex flex-col gap-6">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between text-[20px]">
+                                <span>size</span>
+                                <span id="sizeVal">80px</span>
+                            </div>
+                            <input type="range" id="sizeSlider" min="20" max="240" value="80"
+                                class="w-full h-[1px] bg-[#2D7732]/40 appearance-none cursor-pointer accent-[#2D7732]">
+                        </div>
+
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between text-[20px]">
+                                <span>lineheight</span>
+                                <span id="lhVal">1.2</span>
+                            </div>
+                            <input type="range" id="lhSlider" min="0.5" max="3" step="0.1" value="1.2"
+                                class="w-full h-[1px] bg-[#2D7732]/40 appearance-none cursor-pointer accent-[#2D7732]">
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+<section id="section-4" class="h-screen w-screen flex flex-col px-20 pt-32 pb-4 translate-x-[120px]">
+
+<div class="h-12 flex items-end mb-4 translate-x-[16px]">
+
+        <h2 class="text-[20px]">reduced characters set</h2>
+    </div>
+
+    <div class="flex-1 flex items-stretch min-h-0 gap-12">
+
+        <!-- 左侧：变窄 + 右对齐 -->
+        <div class="h-[90%] flex flex-col min-h-0 w-[40%] ml-auto flex-shrink-0">
+            <div class="flex-1 overflow-y-auto custom-scrollbar bg-transparent">
+                <!-- 10列 → 9列 -->
+                <div id="char-grid" class="grid grid-cols-9 p-4 gap-2">
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧保持完全不动 -->
+        <div class="h-[90%] flex-1 flex flex-col justify-end items-start">
+            <span id="focus-char"
+                class="text-[300px] leading-none text-[#2D7732] ml-[30px] pb-8 translate-y-6"
+                style="display:inline-block;">a</span>
+        </div>
+
+    </div>
+</section>
+
+
+            <section id="section-3" class="h-screen w-screen flex items-center justify-center overflow-hidden">
+                <img src="image/part1.png" class="w-[90%] h-[90%] object-contain translate-x-[120px]" alt="part1 image">
+            </section>
+
+        </div>
+    </div>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+        const canvas = document.getElementById('vibe-canvas');
+        const centerX = document.getElementById('center-x');
+        const focusChar = document.getElementById('focus-char');
+        const editableText = document.getElementById('editableText');
+        const sizeSlider = document.getElementById('sizeSlider');
+        const sizeVal = document.getElementById('sizeVal');
+        const lhSlider = document.getElementById('lhSlider');
+        const lhVal = document.getElementById('lhVal');
+        const scrollDots = document.querySelectorAll('.scroll-dot');
+        const fixedHeader = document.getElementById('fixed-header');
+        fixedHeader.addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+        let currentSection = 1;
+        let isScrolling = false;
+        const totalSections = 4;
+
+        // 更新滚动指示器
+        function updateScrollTracker(section) {
+            scrollDots.forEach(dot => {
+                dot.classList.remove('active');
+            });
+            scrollDots[section - 1].classList.add('active');
+        }
+
+        // 处理滚轮事件
+        function handleWheel(e) {
+            if (isScrolling) return;
+
+            const delta = e.deltaY > 0 ? 1 : -1;
+            const newSection = currentSection + delta;
+
+            if (newSection >= 1 && newSection <= totalSections) {
+                isScrolling = true;
+                currentSection = newSection;
+
+                updateScrollTracker(currentSection);
+
+                // 计算目标位置
+                let targetX = "0%";
+                let targetY = "0%";
+
+                switch (currentSection) {
+                    case 1:
+                        targetX = "0%";
+                        targetY = "0%";
+                        break;
+                    case 2:
+                        targetX = "-50%";
+                        targetY = "0%";
+                        break;
+                    case 3:
+                        targetX = "-50%";
+                        targetY = "-50%";
+                        break;
+                    case 4:
+                        targetX = "0%";
+                        targetY = "-50%";
+                        break;
+                }
+
+                // 使用GSAP动画移动到目标位置
+                gsap.to(canvas, {
+                    x: targetX,
+                    y: targetY,
+                    duration: 0.8,
+                    ease: "power2.out",
+                    onComplete: () => {
+                        setTimeout(() => {
+                            isScrolling = false;
+                        }, 300);
+                    }
+                });
+
+                // 如果是滚动到第四个section，阻止默认滚动行为
+                if (currentSection === totalSections) {
+                    e.preventDefault();
+                }
+            }
+        }
+
+        let introDone = false;
+
+        window.addEventListener('load', () => {
+            const mainWrapper = document.getElementById('main-wrapper');
+            // 1. 初始状态：让 canvas 里的 sections 彻底透明，但 canvas 容器和中心 X 保持可见
+            gsap.set("section", { opacity: 0 });
+            // 设置 CSS 变量，让背景 noise 初始不可见
+            gsap.set(mainWrapper, { "--noise-opacity": 0 });
+
+            gsap.set(centerX, { opacity: 0 });  // IMPORTANT: la X grande resta dov’è, solo invisibile
+
+            gsap.set(canvas, {
+                opacity: 1,
+                scale: 0.5,
+                x: "0%",
+                y: "0%"
+            });
+            gsap.set(centerX, { opacity: 1 });
+
+            gsap.set(centerX, { fontSize: "600px" });
+
+            gsap.set(centerX, {
+                position: "fixed",
+                top: "32%",
+                left: "50%",
+                xPercent: -50,
+                yPercent: -50
+            });
+
+
+
+            const tl = gsap.timeline({
+                defaults: { ease: "power2.inOut" },
+                onComplete: () => {
+                    introDone = true;
+                }
+            });
+
+            // --- 动画序列 ---
+            tl.to({}, { duration: 1 })
+                .to(centerX, {
+                    fontSize: "300vh",
+                    duration: 0.6,
+                    ease: "power2.inOut"
+                })
+                .to(["section", mainWrapper], {
+                    opacity: 1,
+                    "--noise-opacity": 0.3,
+                    duration: 1.2,
+                    stagger: 0.1
+                })
+                .to({}, { duration: 0.5 })
+                .to(canvas, {
+                    scale: 1,
+                    duration: 1.1,
+                    ease: "power3.inOut",
+                    onComplete: () => { introDone = true; }
+                })
+                /* 🚩 在这里添加下面这行代码 */
+                .to("#fixed-header", { opacity: 1, pointerEvents: "auto", duration: 0.5 });
+
+
+
+            // --- 交互控制 (保持不变) ---
+            window.addEventListener("wheel", (e) => {
+                if (!introDone) return;
+                handleWheel(e);
+            }, { passive: false });
+
+// --- 修正后的交互控制 ---
+window.addEventListener("wheel", (e) => {
+    if (!introDone) return;
+    handleWheel(e);
+}, { passive: false });
+
+window.addEventListener("keydown", (e) => {
+    // 1. 如果动画没完，或者正在滚动，拦截所有控制键防止页面跳动
+    if (!introDone || isScrolling) {
+        if (e.key === " " || e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+        }
+        return;
+    }
+
+    // 2. 检查焦点：如果你在文本框(textarea)里打字，不要触发翻页
+    const isTyping = e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT';
+    
+    let delta = 0;
+    if (e.key === "ArrowDown") {
+        delta = 1;
+    } else if (e.key === "ArrowUp") {
+        delta = -1;
+    } else if (e.key === " " && !isTyping) { 
+        // 只有在【没打字】的时候，按空格才翻页
+        delta = 1;
+    }
+
+    if (delta !== 0) {
+        // 关键：阻止浏览器默认的空格滚动行为
+        e.preventDefault(); 
+        const newSection = currentSection + delta;
+        if (newSection >= 1 && newSection <= totalSections) {
+            handleWheel({ deltaY: delta * 100 });
+        }
+    }
+}, { passive: false });
+        });
+
+        const glyphSets = {
+            maiuscola: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+            minuscola: "abcdefghijklmnopqrstuvwxyz".split(""),
+            accenti: [..."àáèéòóúý"],
+            numeri: "0123456789".split(""),
+            glifi: [..."!&()*,?¿¡@[]{}", ..."", ..."", ..."%‰", ..."", ..."$£¥€"]
+        };
+        const allChars = [...glyphSets.maiuscola, ...glyphSets.minuscola, ...glyphSets.accenti, ...glyphSets.numeri, ...glyphSets.glifi];
+        const charGrid = document.getElementById('char-grid');
+
+        allChars.forEach(char => {
+            const span = document.createElement('span');
+            span.innerText = char;
+            span.onclick = () => {
+                focusChar.innerText = char;
+                gsap.fromTo(focusChar, { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3 });
+            };
+            charGrid.appendChild(span);
+        });
+
+        // 输入框监听同步
+        editableText.addEventListener('input', (e) => {
+            const val = e.target.value;
+            // 如果你希望输入时大 X 也变，取消下一行的注释
+            // centerX.innerText = val.length > 0 ? val[val.length - 1] : "x";
+        });
+        let isFirstInput = true;
+
+        editableText.addEventListener("input", () => {
+            if (isFirstInput) {
+                editableText.value = "";
+                isFirstInput = false;
+            }
+        });
+
+        // 字体大小滑块控制
+        sizeSlider.addEventListener('input', (e) => {
+            const size = e.target.value + 'px';
+            sizeVal.textContent = size;
+            editableText.style.fontSize = size;
+        });
+
+        // 行高滑块控制
+        lhSlider.addEventListener('input', (e) => {
+            const lh = e.target.value;
+            lhVal.textContent = lh;
+            editableText.style.lineHeight = lh;
+        });
+
+        // 点击滚动点导航
+        scrollDots.forEach(dot => {
+            dot.addEventListener('click', (e) => {
+                if (isScrolling) return;
+
+                const targetSection = parseInt(e.target.dataset.section);
+                if (targetSection !== currentSection) {
+                    const delta = targetSection - currentSection;
+                    handleWheel({ deltaY: delta * 100 });
+                }
+
+
+            });
+        });
+
+        function setTextAlign(align, el) {
+            const textarea = document.getElementById('editableText');
+
+            // 1. 设置文本对齐
+            textarea.style.textAlign = align;
+
+            // 2. 切换 Active 类名
+            document.querySelectorAll('.align-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            el.classList.add('active');
+
+            // 3. 增加点击瞬间的缩放动画（模仿点击反馈）
+            gsap.fromTo(el,
+                { scale: 0.9 },
+                { scale: 1, duration: 0.2, ease: "back.out(2)" }
+            );
+        }
+
+    </script>
+</body>
+
+</html>
