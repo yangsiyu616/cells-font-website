@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Cell</title>
+
+  <style>
+    /* ======================
+        引入自定义字体
+        ====================== */
+    @font-face {
+      font-family: 'G15Font';
+      src: url('Cell-2901.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'G15Font', Arial, sans-serif;
+    }
+
+    body {
+      overflow-x: hidden;
+      background-color: #f3fcf4;
+      color: #2d7732;
+    }
+
+    /* ======================
+           开场视频样式 (NEW)
+        ====================== */
+    #intro-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #f3fcf4;
+      /* 与背景色一致，过渡更自然 */
+      z-index: 99999;
+      /* 确保在最上层 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 1s ease;
+      /* 淡出动画时长 */
+    }
+
+    #intro-container.hidden {
+      opacity: 0;
+      pointer-events: none;
+      /* 隐藏后不阻挡鼠标操作 */
+    }
+
+    #intro-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      /* 确保视频填满屏幕 */
+    }
+
+    /* ======================
+        TITOLO & TEXT BLOCK
+        ===================== */
+    #title {
+      position: absolute;
+      left: 43%;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 1000;
+      display: flex;
+      gap: 0.5em;
+      color: #2d7732;
+    }
+
+    #title span {
+      display: inline-block;
+      opacity: 0;
+      transform: translateX(-20px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    #title.visible span {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    #title.visible span:nth-child(2) {
+      transition-delay: 0.4s;
+    }
+
+    #title.fixed {
+      position: fixed;
+      top: 20px;
+      transform: none;
+      transition: top 1.2s ease;
+    }
+
+    #text-block {
+      position: absolute;
+      top: 100%;
+      left: 35%;
+      width: 450px;
+      opacity: 0;
+      transition: top 1.2s ease, opacity 0.8s ease;
+      color: #2d7732;
+      z-index:10000;
+    }
+
+    #text-block p {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 1.2em;
+      text-align: left;
+    }
+
+#text-block .p1{ margin-bottom: 1.6em; }  /* 第一段到第二段 */
+#text-block .p2{ margin-bottom: 2.4em; }  /* 第二段到第三段 */
+#text-block .p3{ margin-bottom: 0; }   
+    /* ======================
+        CONTENT GRID SYSTEM
+        ====================== */
+    #content {
+      margin-top: 110vh;
+      padding: 100px 18%;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-auto-rows: 80px;
+      gap: 32px;
+      justify-content: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .bg-image-wrapper {
+      position: absolute;
+      top: 110vh;
+      left: 0;
+      width: 100%;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .bg-image-wrapper img {
+      width: 2000px;
+      display: block;
+      height: auto;
+    }
+
+    /* IMAGE HOVER LOGIC */
+    .image {
+      width: 100%;
+      align-self: stretch;
+      position: relative;
+      overflow: visible;
+    }
+
+    /* disable hover/click for items without a back image */
+    .image:not(.has-back) {
+      pointer-events: none;
+    }
+
+    .image img {
+      display: block;
+      transition:none;
+    }
+
+    .image img.img-front {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image img.img-back {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 50vw;
+      height: 50vh;
+      object-fit: contain;
+      opacity: 0;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    /* hover swap only when a back image exists */
+    .image.has-back:hover img.img-front {
+      opacity: 0;
+    }
+
+    .image.has-back:hover img.img-back {
+      opacity: 1;
+    }
+
+    /* Grid Items Positioning */
+    .image:nth-child(1) {
+      grid-column: 1 / span 4;
+      grid-row: 3 / span 2;
+    }
+
+    .image:nth-child(2) {
+      grid-column: 6 / span 6;
+      grid-row: 6 / span 3;
+    }
+
+    .image:nth-child(3) {
+      grid-column: 10 / span 4;
+      grid-row: 1 / span 2;
+    }
+
+    .image:nth-child(4) {
+      grid-column: 2 / span 4;
+      grid-row: 12 / span 4;
+    }
+
+    .image:nth-child(5) {
+      grid-column: 10 / span 3;
+      grid-row: 11 / span 2;
+    }
+
+    .image:nth-child(6) {
+      grid-column: 8 / span 9;
+      grid-row: 16 / span 3;
+    }
+
+    .image:nth-child(7) {
+      grid-column: 1 / span 3;
+      grid-row: 20 / span 2;
+    }
+
+    .image:nth-child(8) {
+      grid-column: 6 / span 4;
+      grid-row: 22 / span 4;
+    }
+
+    .image:nth-child(9) {
+      grid-column: 1 / span 6;
+      grid-row: 29 / span 4;
+    }
+
+    .image:nth-child(10) {
+      grid-column: 11 / span 5;
+      grid-row: 27 / span 3;
+    }
+
+    .image:nth-child(11) {
+      grid-column: 10 / span 3;
+      grid-row: 33 / span 2;
+    }
+
+    .image:nth-child(12) {
+      grid-column: 4 / span 4;
+      grid-row: 36 / span 3;
+    }
+
+    .grid-spacer {
+      grid-column: 1 / -1;
+      grid-row: 39 / span 6;
+      pointer-events: none;
+    }
+
+    /* ======================
+        X ZOOM SECTION
+        ====================== */
+    #typo-noise {
+      height: 100vh;
+      background: #f3fcf4;
+      position: relative;
+      z-index: 10;
+      margin-top: 150px;
+    }
+
+    #noise-container {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 0vh;
+    }
+
+    #zoom-x-svg text {
+      font-family: 'G15Font', sans-serif;
+      fill: #2d7732;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      transition: opacity 0.05s ease;
+    }
+
+    /* Fullscreen green overlay */
+    #green-overlay {
+      position: fixed;
+      inset: 0;
+      background: #2d7732;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 9999;
+    }
+
+    #zoom-x-svg {
+      width: 6px;
+      height: 6px;
+      will-change: width, height, transform;
+      transform-origin: center center;
+      position: absolute;
+      left: 50%;
+      top: 0;
+      /* will be updated by JS */
+      transform: translate(-50%, 0);
+    }
+
+    /* ======================
+   ZOOM NOISE + X (FINE PAGINA)
+====================== */
+    #zoom-scene {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      pointer-events: none;
+      opacity: 0;
+      /* rimane nascosto */
+      transition: opacity 0.0s;
+      /* NO fade */
+    }
+
+    #zoom-scene.active {
+      opacity: 1;
+      /* diventa visibile subito */
+    }
+
+    #zoom-noise {
+      position: absolute;
+      inset: 0;
+      background-image: url("image/noise2.png");
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: cover;
+      transform-origin: center;
+    }
+
+/* ======================
+   ZOOM NOISE + X (FINE PAGINA) 修正版
+====================== */
+#zoom-x {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  /* 移除原本的 align-items: flex-start */
+  align-items: center; 
+  pointer-events: none;
+}
+
+#zoom-x svg {
+  width: 100%;
+  height: 100%;
+  /* 关键点：通过 position 定位中心点 */
+  position: absolute;
+  top: 32%; /* 垂直中心点锁定在 32% */
+  left: 50%;
+  transform: translate(-50%, -50%); /* 将 SVG 自身的中心与 32% 坐标点对齐 */
+}
+
+#zoom-x text {
+  fill: #2d7732;
+  text-anchor: middle;
+  dominant-baseline: central; /* 比 middle 更精准的垂直居中方式 */
+}
+.info-overlay {
+  position: absolute;
+  top: 60%;                 /* push box lower to avoid touching images */
+  left: 105%;               /* keep it to the right of the letter */
+
+  width: 26vw;
+  max-width: none;
+
+  background: #f3fcf4;
+  color: #2d7732;
+  font-size: 16px;
+  line-height: 1.4;
+
+  padding: 10px 12px;
+  border: 1px solid #2d7732; /* subtle outline */
+
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(10px, -50%); /* slide in from the right, centered */
+  transition: opacity 0.3s ease, transform 0.3s ease;
+
+  z-index: 300;
+
+  display: grid;
+  grid-template-columns: max-content max-content; /* two columns */
+  grid-auto-flow: row;                             /* fill down then across */
+  grid-auto-rows: auto;
+  column-gap: 14px;
+  row-gap: 6px;
+  justify-content: center;   /* center the grid horizontally */
+  align-content: center;     /* center vertically inside box */
+  text-align: left;
+}
+
+    .info-overlay p {
+      margin-bottom: 0;
+      text-align: left;
+      /* default for cols 2 & 3 */
+      break-inside: avoid;
+    }
+
+    .info-overlay p:nth-child(2n+1) {
+      text-align: right;
+    }
+
+    /* first column */
+
+.image.active .info-overlay {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(0, -50%);
+}
+
+/* mirror placement to the left side */
+.info-overlay.left {
+  left: auto;
+  right: 105%;
+  transform: translate(-10px, -50%);
+}
+.image.active .info-overlay.left {
+  transform: translate(0, -50%);
+}
+
+/* further-left variant for crowded spots */
+.info-overlay.far-left {
+  left: auto;
+  right: 125%;
+  transform: translate(-16px, -50%);
+}
+.image.active .info-overlay.far-left {
+  transform: translate(0, -50%);
+}
+
+/* variant to tuck box closer to the image */
+.info-overlay.tight {
+  left: 100%;
+  transform: translate(2px, -50%); /* nudge closer to the image */
+}
+.image.active .info-overlay.tight {
+  transform: translate(0, -50%);
+}
+
+/* variant to push box further from the image */
+.info-overlay.loose {
+  left: 112%;
+  transform: translate(12px, -50%);
+}
+.image.active .info-overlay.loose {
+  transform: translate(0, -50%);
+}
+
+/* variant to move box up and further right */
+.info-overlay.bump-up-right {
+  top: 44%;      /* raise higher */
+  left: 130%;    /* push further right */
+  transform: translate(20px, -50%);
+}
+.image.active .info-overlay.bump-up-right {
+  transform: translate(0, -50%);
+}
+
+/* variant to show box beneath the image, centered */
+.info-overlay.bottom {
+  top: 115%;
+  left: 50%;
+  transform: translate(-50%, 0);
+}
+.image.active .info-overlay.bottom {
+  transform: translate(-50%, 0);
+}
+
+    .info-overlay p:last-child {
+      margin-bottom: 0;
+    }
+    .info-overlay {
+  display: none !important;
+}
+  </style>
+</head>
+
+<body>
+
+  <div id="intro-container">
+    <video id="intro-video" muted autoplay playsinline>
+      <source src="image/video.micro.website.mp4" type="video/mp4">
+    </video>
+  </div>
+  <div id="title">
+    <span>Organismo</span>
+    <span>Tipografico</span>
+  </div>
+
+  <div id="text-block">
+    <p class="p1">La cellula rappresenta l’origine della vita, così come la lettera può essere vista come l’origine del linguaggio. In entrambe riconosciamo un principio comune: la natura tende a generare e ripetere strutture essenziali, le stesse geometrie minime che ritroviamo anche nella scrittura umana. </p><p class="p2">Per questo, dove appare una lettera sembra affiorare una traccia di vita, come se segno e organismo condividessero la stessa struttura primaria.
+Attraverso questa analogia, l’archivio non si limita a catalogare forme, ma si configura come un organismo linguistico vivente, in cui la storia della tipografia viene riletta come un processo di sviluppo biologico e strutturale. Quando l’essere umano iniziò a incidere segni sulla pietra e sulla carta, tornò inconsapevolmente a quelle stesse strutture primarie: le cellule. Curve, incisioni, aperture e chiusure non nacquero dal nulla, ma da una memoria formale più antica della cultura stessa.
+    </p><p class="p2">Il carattere tipografico prende forma a partire da un corpo con grazie, una struttura iniziale solida e riconoscibile. Al suo interno si sviluppano moduli globulari, simili a cellule, che ne trasformano progressivamente l’aspetto, generando una forma ibrida che appare insieme costruita e vitale.</p>
+  </div>
+  <div class="bg-image-wrapper">
+    <img src="image/noise.jpg" alt="bg1">
+    <img src="image/111.jpg" alt="bg2">
+    <img src="image/222.jpg" alt="bg3">
+    <img src="image/333.jpg" alt="bg4">
+
+  </div>
+
+  <div id="content">
+    <div class="image">
+      <img src="image/f4.png" class="img-front">
+      <img src="image/1.png" class="img-back">
+
+      <div class="info-overlay">
+        <p>Membrana plasmatica</p>
+        <p>Italico</p>
+        <p>Filamenti</p>
+        <p>Sans-serif</p>
+        <p>Parete cellulare</p>
+        <p>Semi-bold</p>
+        <p>Volume cellulare</p>
+        <p>-</p>
+        <p>Polarità</p>
+        <p>Normale</p>
+        <p>Gradiente di concentrazione</p>
+        <p>Minima</p>
+        <p>Corpo cellulare</p>
+        <p>Alto</p>
+        <p>Pori della membrana</p>
+        <p>-</p>
+        <p>Funzione della cellula</p>
+        <p>Generosa</p>
+      </div>
+    </div>
+
+    <div class="image">
+      <img src="image/f9.png" class="img-front">
+      <img src="image/2.png" class="img-back">
+      <div class="info-overlay tight">
+        <p>Membrana plasmatica</p>
+        <p>Italico</p>
+        <p>Filamenti</p>
+        <p>Sans-serif</p>
+        <p>Parete cellulare</p>
+        <p>Semi-bold</p>
+        <p>Volume cellulare</p>
+        <p>-</p>
+        <p>Polarità</p>
+        <p>Normale</p>
+        <p>Gradiente di concentrazione</p>
+        <p>Minima</p>
+        <p>Corpo cellulare</p>
+        <p>Alto</p>
+        <p>Pori della membrana</p>
+        <p>-</p>
+        <p>Funzione della cellula</p>
+        <p>Generosa</p>
+      </div>
+    </div>
+    <div class="image"><img src="image/ff8.png" class="img-front"><img src="image/www0.png" class="img-back"></div>
+    <div class="image">
+      <img src="image/f6.png" class="img-front">
+      <img src="image/7.png" class="img-back">
+      <div class="info-overlay loose">
+        <p>Membrana plasmatica</p>
+        <p>Italico</p>
+        <p>Filamenti</p>
+        <p>Sans-serif</p>
+        <p>Parete cellulare</p>
+        <p>Semi-bold</p>
+        <p>Volume cellulare</p>
+        <p>-</p>
+        <p>Polarità</p>
+        <p>Normale</p>
+        <p>Gradiente di concentrazione</p>
+        <p>Minima</p>
+        <p>Corpo cellulare</p>
+        <p>Alto</p>
+        <p>Pori della membrana</p>
+        <p>-</p>
+        <p>Funzione della cellula</p>
+        <p>Generosa</p>
+      </div>
+    </div>
+    <div class="image"><img src="image/f13.png" class="img-front"><img src="image/www0.png" class="img-back"></div>
+    <div class="image">
+      <img src="image/f18.png" class="img-front">
+      <img src="image/8.png" class="img-back">
+      <div class="info-overlay left">
+        <p>Membrana plasmatica</p>
+        <p>Italico</p>
+        <p>Filamenti</p>
+        <p>Sans-serif</p>
+        <p>Parete cellulare</p>
+        <p>Semi-bold</p>
+        <p>Volume cellulare</p>
+        <p>-</p>
+        <p>Polarità</p>
+        <p>Normale</p>
+        <p>Gradiente di concentrazione</p>
+        <p>Minima</p>
+        <p>Corpo cellulare</p>
+        <p>Alto</p>
+        <p>Pori della membrana</p>
+        <p>-</p>
+        <p>Funzione della cellula</p>
+        <p>Generosa</p>
+      </div>
+    </div>
+    <div class="image">
+      <img src="image/f3.png" class="img-front">
+      <img src="image/5.png" class="img-back">
+      <div class="info-overlay bump-up-right">
+        <p>Membrana plasmatica</p>
+        <p>Italico</p>
+        <p>Filamenti</p>
+        <p>Sans-serif</p>
+        <p>Parete cellulare</p>
+        <p>Semi-bold</p>
+        <p>Volume cellulare</p>
+        <p>-</p>
+        <p>Polarità</p>
+        <p>Normale</p>
+        <p>Gradiente di concentrazione</p>
+        <p>Minima</p>
+        <p>Corpo cellulare</p>
+        <p>Alto</p>
+        <p>Pori della membrana</p>
+        <p>-</p>
+        <p>Funzione della cellula</p>
+        <p>Generosa</p>
+      </div>
+    </div>
+    <div class="image">
+      <img src="image/f12.png" class="img-front">
+      <img src="image/3.png" class="img-back">
+      <div class="info-overlay">
+        <p>Membrana plasmatica</p>
+        <p>Italico</p>
+        <p>Filamenti</p>
+        <p>Sans-serif</p>
+        <p>Parete cellulare</p>
+        <p>Semi-bold</p>
+        <p>Volume cellulare</p>
+        <p>-</p>
+        <p>Polarità</p>
+        <p>Normale</p>
+        <p>Gradiente di concentrazione</p>
+        <p>Minima</p>
+        <p>Corpo cellulare</p>
+        <p>Alto</p>
+        <p>Pori della membrana</p>
+        <p>-</p>
+        <p>Funzione della cellula</p>
+        <p>Generosa</p>
+      </div>
+    </div>
+    <div class="image"><img src="image/ff2.png" class="img-front"><img src="image/www0.png" class="img-back"></div>
+    <div class="image">
+      <img src="image/f17.png" class="img-front">
+      <img src="image/9.png" class="img-back">
+      <div class="info-overlay bottom">
+        <p>Membrana plasmatica</p>
+        <p>Italico</p>
+        <p>Filamenti</p>
+        <p>Sans-serif</p>
+        <p>Parete cellulare</p>
+        <p>Semi-bold</p>
+        <p>Volume cellulare</p>
+        <p>-</p>
+        <p>Polarità</p>
+        <p>Normale</p>
+        <p>Gradiente di concentrazione</p>
+        <p>Minima</p>
+        <p>Corpo cellulare</p>
+        <p>Alto</p>
+        <p>Pori della membrana</p>
+        <p>-</p>
+        <p>Funzione della cellula</p>
+        <p>Generosa</p>
+      </div>
+    </div>
+    <div class="image">
+      <img src="image/f7.png" class="img-front">
+      <img src="image/4.png" class="img-back">
+      <div class="info-overlay far-left">
+        <p>Membrana plasmatica</p>
+        <p>Italico</p>
+        <p>Filamenti</p>
+        <p>Sans-serif</p>
+        <p>Parete cellulare</p>
+        <p>Semi-bold</p>
+        <p>Volume cellulare</p>
+        <p>-</p>
+        <p>Polarità</p>
+        <p>Normale</p>
+        <p>Gradiente di concentrazione</p>
+        <p>Minima</p>
+        <p>Corpo cellulare</p>
+        <p>Alto</p>
+        <p>Pori della membrana</p>
+        <p>-</p>
+        <p>Funzione della cellula</p>
+        <p>Generosa</p>
+      </div>
+    </div>
+    <div class="image"><img src="image/ff1.png" class="img-front"><img src="image/www0.png" class="img-back"></div>
+    <div class="grid-spacer"></div>
+  </div>
+
+
+
+  <!-- CAMERA ZOOM SCENE -->
+  <div id="zoom-scene">
+    <div id="zoom-noise"></div>
+    <div id="zoom-x">
+      <svg viewBox="0 0 100 100">
+        <text id="zoom-letter" x="50" y="50">x</text>
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    // ============================
+    // RESET SCROLL (optional)
+    // ============================
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+
+    // ============================
+    // 视频逻辑 & 原始动画触发
+    // ============================
+    const title = document.getElementById("title");
+    const textBlock = document.getElementById("text-block");
+    const introContainer = document.getElementById("intro-container");
+    const introVideo = document.getElementById("intro-video");
+
+    // 将原始的 window.load 逻辑封装成一个函数
+    function startSiteAnimations() {
+      setTimeout(() => { title.classList.add("visible"); }, 300);
+      setTimeout(() => {
+        title.classList.add("fixed");
+        textBlock.style.top = "50%";
+        textBlock.style.opacity = "1";
+      }, 1800);
+    }
+
+    // 监听视频结束事件
+    if (introVideo) {
+      introVideo.addEventListener('ended', () => {
+        // 1. 淡出视频容器
+        introContainer.classList.add('hidden');
+
+        // 2. 等待淡出动画完成后，销毁视频（节省资源）并开始网页动画
+        setTimeout(() => {
+          introContainer.style.display = 'none'; // 彻底移除布局
+          startSiteAnimations(); // 触发原来的文字动画
+        }, 1000); // 这里的时间要和 CSS transition 时间匹配 (1s = 1000ms)
+      });
+    } else {
+      // 如果找不到视频（比如代码写错了），直接开始动画作为保险
+      window.addEventListener('load', startSiteAnimations);
+    }
+
+    title.addEventListener("click", () => {
+      textBlock.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+
+    /* ============================
+     ZOOM NOISE + X (FINE PAGINA)
+  =========================== */
+    const scene = document.getElementById("zoom-scene");
+    const noise = document.getElementById("zoom-noise");
+    const letter = document.getElementById("zoom-letter");
+
+    let zooming = false;
+    let start = null;
+    const duration = 6000;
+
+    function zoomScene(ts) {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      const ease = Math.pow(p, 3);
+
+      // X cresce via font-size (sempre nitida)
+      const fontSize = 1 + ease * 30;  // 更大
+
+      letter.setAttribute("font-size", fontSize);
+
+      // Noise zoom
+      const noiseScale = 1 + ease * 17;
+      noise.style.transform = `scale(${noiseScale})`;
+
+      if (p < 0.98) {
+        requestAnimationFrame(zoomScene);
+      } else {
+        window.location.href = "finalspecimen.html";
+      }
+    }
+
+    window.addEventListener("scroll", () => {
+      if (zooming) return;
+
+      const scrolled = window.scrollY + window.innerHeight;
+      const total = document.documentElement.scrollHeight;
+
+      if (scrolled >= total - 2) {
+        zooming = true;
+        scene.classList.add("active");
+        requestAnimationFrame(zoomScene);
+      }
+    });
+
+    window.addEventListener("scroll", () => {
+      if (zooming) return;
+
+      const scrolled = window.scrollY + window.innerHeight;
+      const total = document.documentElement.scrollHeight;
+
+      if (scrolled >= total - 2) {
+        zooming = true;
+
+        // attiva la scena (senza delay)
+        scene.classList.add("active");
+
+        // avvia subito l'animazione
+        requestAnimationFrame(zoomScene);
+      }
+    });
+
+    document.querySelectorAll(".image").forEach(img => {
+      const overlay = img.querySelector(".info-overlay");
+
+      img.addEventListener("click", e => {
+        e.stopPropagation();
+        // close other open overlays
+        document.querySelectorAll(".image.active").forEach(other => {
+          if (other !== img) other.classList.remove("active");
+        });
+        img.classList.add("active");
+      });
+
+      // hide the overlay as soon as the pointer leaves it
+      if (overlay) {
+        overlay.addEventListener("mouseleave", () => {
+          img.classList.remove("active");
+        });
+      }
+
+      // auto-hide when leaving the letter area (unless moving inside its overlay)
+      img.addEventListener("mouseleave", evt => {
+        if (!img.contains(evt.relatedTarget)) {
+          img.classList.remove("active");
+        }
+      });
+
+      // mark images that actually have a hover-back image
+      const back = img.querySelector(".img-back");
+      if (back && back.getAttribute("src") && back.getAttribute("src").trim() !== "") {
+        img.classList.add("has-back");
+        // if the back image fails to load, disable hover for this item
+        back.addEventListener("error", () => {
+          img.classList.remove("has-back");
+          img.style.pointerEvents = "none";
+        });
+      } else {
+        img.style.pointerEvents = "none";
+      }
+    });
+
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".image.active")
+        .forEach(el => el.classList.remove("active"));
+    });
+
+    // ============================
+// 禁用空格键滚动页面功能
+// ============================
+window.addEventListener('keydown', function(e) {
+  // 检查是否按下了空格键 (Space)
+  // 并且确保当前没有在输入框中（虽然你现在的页面没有输入框，但这是一种安全的写法）
+  if (e.keyCode === 32 && e.target === document.body) {
+    e.preventDefault();
+  }
+}, false);
+  </script>
+</body>
+
+</html>
